@@ -11,3 +11,87 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id        Int              @id @default(autoincrement())
+  name      String
+  profile   ProviderProfile?
+  phNum     String           @unique
+  email     String?          @unique
+  createdAt DateTime         @default(now())
+  bookings  Booking[]
+}
+
+model ProviderProfile {
+  id          Int               @id @default(autoincrement())
+  userId      Int               @unique
+  city        String
+  area        String?
+  description String?
+  experience  Int?
+  isAvailable Boolean           @default(false)
+  services    ProviderService[]
+  user        User              @relation(fields: [userId], references: [id])
+  reviews     Review[]
+}
+
+model ServiceCategory {
+  id            Int                  @id @default(autoincrement())
+  name          String               @unique
+  subcategories ServiceSubcategory[]
+}
+
+model ServiceSubcategory {
+  id         Int               @id @default(autoincrement())
+  name       String
+  categoryId Int
+  providers  ProviderService[]
+  category   ServiceCategory   @relation(fields: [categoryId], references: [id])
+
+  @@unique([name, categoryId])
+}
+
+model ProviderService {
+  id            Int                @id @default(autoincrement())
+  providerId    Int
+  subCategoryId Int
+  minPrice      Int
+  maxPrice      Int
+  bookings      Booking[]
+  provider      ProviderProfile    @relation(fields: [providerId], references: [id])
+  subCategory   ServiceSubcategory @relation(fields: [subCategoryId], references: [id])
+
+  @@unique([providerId, subCategoryId])
+}
+
+model Booking {
+  id                Int             @id @default(autoincrement())
+  userId            Int
+  providerServiceId Int
+  description       String?
+  actualPrice       Decimal?
+  review            Review?
+  status            BookingStatus   @default(PENDING)
+  createdAt         DateTime        @default(now())
+  user              User            @relation(fields: [userId], references: [id])
+  providerService   ProviderService @relation(fields: [providerServiceId], references: [id])
+}
+
+model Review {
+  id         Int             @id @default(autoincrement())
+  bookingId  Int             @unique
+  providerId Int
+  rating     Int
+  comments   String?
+  createdAt  DateTime        @default(now())
+  provider   ProviderProfile @relation(fields: [providerId], references: [id])
+  booking    Booking         @relation(fields: [bookingId], references: [id])
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
